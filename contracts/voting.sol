@@ -86,13 +86,17 @@ contract VotingSystem {
     function getAllCandidateIds() public view returns (uint[] memory) {
         return candidateIds;
     }
-
+    
     function authorizeVoter(address voterAddr) public onlyOwner {
         require(!voters[voterAddr].isRegistered, "Already authorized");
         voters[voterAddr].isRegistered = true;
         voterList.push(voterAddr);
         emit VoterAuthorized(voterAddr);
     }
+   
+    function getAllVoters() public view returns (address[] memory) {
+    return voterList;
+}
 
     function getVoterInfo(address voterAddr) public view returns (Voter memory) {
         return voters[voterAddr];
