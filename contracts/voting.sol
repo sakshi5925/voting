@@ -149,7 +149,6 @@ contract VotingSystem {
         }
         return (candidateIds, votes, totalVotes);
     }
-
     function getWinner() public view electionEndedOnly returns (Candidate memory) {
         uint maxVotes = 0;
         uint winnerId = 0;

@@ -14,7 +14,7 @@ export const checkUserRole =createAsyncThunk(
     'auth/checkUserRole',
     async({account},{rejectWithValue})=>{
         try {
-            const contract=getContract()
+            const contract=await getContract()
             const owner=await contract.owner()
             const isOwner=owner.toLowerCase()===account.toLowerCase()
             return {isOwner}
@@ -28,7 +28,7 @@ export const checkVotingStatus=createAsyncThunk(
     'auth/checkVotingStatus',
     async({account},{rejectWithValue})=>{
         try {
-            const contract=getContract()
+            const contract=await getContract()
             const voter=await contract.voters(account)
             return{
                 isRegisteredVoter:voter.isRegistered,

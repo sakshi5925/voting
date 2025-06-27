@@ -33,16 +33,16 @@ const validateCandidateData = (candidateData) => {
 export const fetchCandidates = createAsyncThunk(
     'candidates/fetchCandidates', async (_, { rejectWithValue }) => {
         try {
-            const contract = getContract();
+            const contract = await getContract();
             const candidateIds = await contract.getAllCandidateIds();
             const candidatesPromise = candidateIds.map(async (id) => {
-                const candidate = await contract.getCandidate(id.toNumber());
+                const candidate = await contract.getCandidate(Number(id));
                 return {
-                    id: candidate.id.toNumber(),
+                    id: Number(candidate.id),
                     name: candidate.name,
                     party: candidate.party,
                     description: candidate.description,
-                    votes: candidate.voteCount.toNumber()
+                    votes: Number(candidate.voteCount)
                 };
             });
             const candidates = await Promise.all(candidatesPromise);
@@ -73,7 +73,7 @@ export const registerCandidate = createAsyncThunk(
             if (isalreadypresent) {
                 return rejectWithValue("Candidate with this name and party already exists");
             }
-            const contract = getContract();
+            const contract = await getContract();
             const transaction = await contract.registerCandidate(
                 candidateData.name,
                 candidateData.party,
@@ -106,14 +106,14 @@ export const fetchCandidateDetails = createAsyncThunk(
             if (!candidateId || candidateId <= 0) {
                 return rejectWithValue("Invalid candidate ID");
             }
-            const contract = getContract();
-            const candidate = contract.getCandidate(candidateId);
+            const contract = await getContract();
+            const candidate = await contract.getCandidate(candidateId);
             return {
-                id: candidate.id.toNumber(),
+                id:  Number(candidate.id),
                 name: candidate.name,
                 party: candidate.party,
                 description: candidate.description,
-                votes: candidate.voteCount.toNumber()
+                votes: Number(candidate.voteCount)
             }
 
         } catch (error) {
@@ -166,8 +166,14 @@ export const candidatesSlice = createSlice({
             })
             .addCase(registerCandidate.fulfilled, (state, action) => {
                 state.isLoading = false;
-                state.candidates.push(action.payload);
-                state.candidateIds.push(action.payload.candidateId);
+                const index = state.candidates.findIndex(c => c.id === action.payload.id);
+                if (index !== -1) {
+                    state.candidates[index] = action.payload;
+                } else {
+                    state.candidates.push(action.payload);
+                    state.candidateIds.push(action.payload.id);
+                }
+                state.candidateIds = [...new Set(state.candidateIds)];
             })
             .addCase(registerCandidate.rejected, (state, action) => {
                 state.isLoading = false;
@@ -196,3 +202,6 @@ export const candidatesSlice = createSlice({
 
     }
 })
+
+export const { setCandidates, addCandidate, updateCandidateVotes } = candidatesSlice.actions;
+export const candidatesReducer = candidatesSlice.reducer;

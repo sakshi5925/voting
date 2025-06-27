@@ -1,15 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { getProvider } from '../../contracts/getContract'
-const chainId = process.env.REACT_APP_CHAIN_ID;
+import { setProvider, setSigner } from '../../contracts/web3Store'
+import { CHAIN_ID } from '../../contracts/config'
+import { clearWeb3Store } from '../../contracts/web3Store'
 const initialState = {
-    provider: null,
-    signer: null,
     account: null,
     chainId: null,
     isConnected: false,
     isConnecting: false,
     error: null
 }
+
 export const connectWallet = createAsyncThunk(
     'wallet/connectWallet',
     async (_, { rejectWithValue }) => {
@@ -19,12 +20,14 @@ export const connectWallet = createAsyncThunk(
             const signer = await provider.getSigner()
             const account = await signer.getAddress()
             const network = await provider.getNetwork()
-            if (String(network.chainId) !== chainId) {
+            if (String(network.chainId) !== CHAIN_ID) {
                 return rejectWithValue(
-                    `Wrong Network! Please connect to Sepolia Testnet (Chain ID: ${chainId})`
+                    `Wrong Network! Please connect to Sepolia Testnet (Chain ID: ${CHAIN_ID})`
                 );
             }
-            return { provider, signer, account, chainId: Number(network.chainId) }
+            setProvider(provider)
+            setSigner(signer)
+            return { account, chainId: Number(network.chainId) }
         } catch (error) {
             return rejectWithValue(error.message)
         }
@@ -40,12 +43,14 @@ export const checkConnection = createAsyncThunk(
             if (accounts.length === 0) {
                 return rejectWithValue("No wallet connected.");
             }
+            const signer = await provider.getSigner();
+            setProvider(provider)
+            setSigner(signer)
+
             return {
-                provider,
-                signer: await provider.getSigner(),
                 account: accounts[0],
                 chainId: Number(network.chainId)
-            };
+            }
         } catch (error) {
             return rejectWithValue(error.message);
         }
@@ -57,8 +62,7 @@ export const web3Slice = createSlice({
     initialState,
     reducers: {
         disconnectWallet: (state) => {
-            state.provider = null,
-                state.signer = null
+            clearWeb3Store();
             state.account = null
             state.chainId = null
             state.isConnected = false
@@ -74,8 +78,6 @@ export const web3Slice = createSlice({
                 state.isConnecting = true
             })
             .addCase(connectWallet.fulfilled, (state, action) => {
-                state.provider = action.payload.provider
-                state.signer = action.payload.signer
                 state.account = action.payload.account
                 state.chainId = action.payload.chainId
                 state.isConnected = true
@@ -89,8 +91,6 @@ export const web3Slice = createSlice({
                 state.isConnecting = true
             })
             .addCase(checkConnection.fulfilled, (state, action) => {
-                state.provider = action.payload.provider
-                state.signer = action.payload.signer
                 state.account = action.payload.account
                 state.chainId = action.payload.chainId
                 state.isConnected = true
@@ -102,5 +102,5 @@ export const web3Slice = createSlice({
             })
     }
 })
-export const {disconnectWallet,switchNetwork}=web3Slice.actions
-export default  web3Slice.reducer
+export const { disconnectWallet, switchNetwork } = web3Slice.actions
+export default web3Slice.reducer
